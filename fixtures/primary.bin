@@ -1,0 +1,33 @@
+From: postmaster@local.invalid
+Message-ID: <notice-1@local.invalid>
+Content-Type: multipart/report; report-type=delivery-status; boundary="dsn-boundary"
+
+--dsn-boundary
+Content-Type: text/plain
+
+Delivery notification
+--dsn-boundary
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.local.invalid
+Original-Envelope-Id: attempt-17
+
+Original-Recipient: rfc822; old@local.invalid
+Final-Recipient: rfc822; new@local.invalid
+Action: failed
+Status: 5.1.1
+Diagnostic-Code: smtp; 550 unavailable
+
+Final-Recipient: rfc822; second@local.invalid
+Action: delayed
+Status: 4.2.0
+
+--dsn-boundary
+Content-Type: message/rfc822
+
+Message-ID: <original-17@local.invalid>
+Content-Type: text/plain
+
+Action: failed
+Status: 5.1.1
+--dsn-boundary--

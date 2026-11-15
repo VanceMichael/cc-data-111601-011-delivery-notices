@@ -1,0 +1,22 @@
+{
+  "catalog": {
+    "entry": "/primary",
+    "attempts": "/attempts",
+    "later": "/delayed"
+  },
+  "resources": {
+    "/primary": {
+      "file": "primary.bin",
+      "type": "message/rfc822",
+      "chunkSize": 13
+    },
+    "/attempts": {
+      "file": "resource-01.bin",
+      "type": "application/json"
+    },
+    "/delayed": {
+      "file": "resource-02.bin",
+      "type": "message/rfc822"
+    }
+  }
+}
