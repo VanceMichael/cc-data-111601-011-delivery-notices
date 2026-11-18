@@ -4,9 +4,9 @@
 
 ## 当前能力
 
-仅有 MIME 邮件头查看和原件目录，不解释 DSN 的逐收件人结果。
+接收并结构化解释 RFC 3464 delivery-status 通知（multipart/report 的 message/delivery-status part，或单独 message/delivery-status），同时保留 MIME 邮件头查看和原件目录。
 
-`src/reader.mjs` 提供现有单件读取契约；`src/transport.mjs` 只访问配置来源的同源地址，拒绝隐式跳转；`src/store.mjs` 保存原件摘要和解释结果。`src/service.mjs` 是产品入口，`src/provider.mjs` 是独立 HTTP 联调来源，内容为无个人信息的本地样例。
+`src/dsn.mjs` 逐收件人解释动作、增强状态码、诊断与原信线索，并按来源发送尝试核对；`src/reader.mjs` 提供现有单件读取契约；`src/transport.mjs` 只访问配置来源的同源地址，拒绝隐式跳转；`src/store.mjs` 保存原件摘要、结构化通知和解释结果。`src/service.mjs` 是产品入口，`src/provider.mjs` 是独立 HTTP 联调来源，内容为无个人信息的本地样例。
 
 ## 环境与运行
 
@@ -29,8 +29,18 @@ npm run demo
 - POST /intakes，JSON 为 {"path":"/primary"}：按现有 reader 接收单件原件；内容解释失败不登记资料。
 - GET /records：持久接收目录；同 source URL、同摘要重领返回原 id。
 - GET /objects/{digest}：读取已保存的原始字节。
+- POST /notices，JSON 为 {"path":"/primary"}：领取并结构化解释 delivery-status 通知，保存原件并登记逐收件人结果；非通知内容或解释失败不登记。
+- GET /notices：已登记通知目录；同 source URL、同摘要重领返回原 id。
+- GET /ledger：按（发送尝试，最终收件人）合并的台账。
 
-这四项是兼容接口，后续扩展可以新增业务入口，但不能把 GET 请求变为写操作。收件记录当前只包含单件 raw 对象，不代表关联资料已完整。
+前四项是兼容接口，后续扩展可以新增业务入口，但不能把 GET 请求变为写操作。收件记录当前只包含单件 raw 对象，不代表关联资料已完整。
+
+## 通知解释与台账口径
+
+- 逐收件人保存 Action（delayed/failed/delivered/relayed/expanded 原样）、Status 增强状态码、Diagnostic-Code 原文与 Original/Final-Recipient；不从自然语言诊断推断永久地址状态，一封失败通知只落在对应收件人，不波及原信其他地址。
+- 原信线索（Original-Envelope-Id、转发原信的 Message-ID、原始收件人）共同核对来源 /attempts 的发送尝试；线索不足为 unmatched、相互矛盾或多候选为 ambiguous，不挑第一个候选。
+- 原始与最终收件人不一致、收件人不在尝试清单、同一通知动作自相矛盾等情况保留在 doubts，不据此推断邮箱永久无效。
+- 台账中 confirmed 是已确认终态事实；较晚到达的 delayed 只进 observations，不覆盖已确认的失败；终态相互矛盾时保留先确认的事实并记录 conflicting-actions。
 
 ## 来源与资料
 
@@ -38,4 +48,4 @@ npm run demo
 
 ## 测试与构建
 
-`npm test` 覆盖现有读取器、畸形输入、真实 HTTP 领取、原件一致性、持久重开、同源边界和范围响应；领域读取行为在 test/domain.test.mjs。`npm run build` 对运行模块逐个执行语法校验并复制到 dist。`docker build -t delivery-notices:local .` 可创建产品运行镜像；镜像默认运行实际演示，不含远程业务凭据。
+`npm test` 覆盖现有读取器、畸形输入、真实 HTTP 领取、原件一致性、持久重开、同源边界和范围响应；领域读取行为在 test/domain.test.mjs，通知解释、尝试核对与台账合并在 test/notice.test.mjs。`npm run build` 对运行模块逐个执行语法校验并复制到 dist。`docker build -t delivery-notices:local .` 可创建产品运行镜像；镜像默认运行实际演示，不含远程业务凭据。

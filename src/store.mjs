@@ -13,6 +13,10 @@ export class Store {
       if (error.code !== 'ENOENT') throw error;
       await this.saveIndex([]);
     }
+    try { await this.listNotices(); } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      await this.saveNotices([]);
+    }
     return this;
   }
   async saveIndex(records) {
@@ -20,8 +24,16 @@ export class Store {
     await writeFile(temporary, JSON.stringify(records));
     await rename(temporary, join(this.directory, 'index.json'));
   }
+  async saveNotices(notices) {
+    const temporary = join(this.directory, `notices-${randomUUID()}.tmp`);
+    await writeFile(temporary, JSON.stringify(notices));
+    await rename(temporary, join(this.directory, 'notices.json'));
+  }
   async list() {
     return JSON.parse(await readFile(join(this.directory, 'index.json'), 'utf8'));
+  }
+  async listNotices() {
+    return JSON.parse(await readFile(join(this.directory, 'notices.json'), 'utf8'));
   }
   async accept(bytes, source, parsed) {
     const digest = createHash('sha256').update(bytes).digest('hex');
@@ -33,6 +45,19 @@ export class Store {
       const record = { id: randomUUID(), digest, source, bytes: bytes.length, parsed };
       records.push(record);
       await this.saveIndex(records);
+      return record;
+    });
+    this.pending = operation.catch(() => {});
+    return operation;
+  }
+  async acceptNotice(notice) {
+    const operation = this.pending.then(async () => {
+      const notices = await this.listNotices();
+      const existing = notices.find(record => record.digest === notice.digest && record.source === notice.source);
+      if (existing) return existing;
+      const record = { id: randomUUID(), ...notice };
+      notices.push(record);
+      await this.saveNotices(notices);
       return record;
     });
     this.pending = operation.catch(() => {});
